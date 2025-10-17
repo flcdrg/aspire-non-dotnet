@@ -1,0 +1,13 @@
+services:
+  mongo:
+    image: mongo:8.0-noble
+    restart: always
+    ports:
+      - "27017:27017"
+    
+    volumes:
+      - type: bind
+        source: ./.data/mongo
+        target: /data/db
+
+    
