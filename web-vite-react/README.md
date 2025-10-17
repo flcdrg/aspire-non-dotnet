@@ -1,73 +1,33 @@
-# React + TypeScript + Vite
+# Cozy Critter Supply Company
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A demo pet-supply storefront built with React 19, TypeScript, and Vite. Browse a curated product list, add items to your cart, and run a mock checkout flow that can be swapped for a live API when you are ready.
 
-Currently, two official plugins are available:
+## Getting started
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+pnpm install
+pnpm dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Open the site at <http://localhost:5173>.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## API configuration
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+The application ships with an in-memory mock API so you can try it without additional services. To connect to a real backend, configure the following environment variables (e.g. in a `.env` file):
+
+```env
+VITE_API_MODE=remote
+VITE_API_BASE_URL=https://your-api.example.com
+VITE_PURCHASE_URL=https://your-api.example.com/purchase
 ```
+
+- `VITE_API_BASE_URL` should return product data at `/products`.
+- `VITE_PURCHASE_URL` should accept a `POST` with `{ items: [{ productId, quantity }] }` and respond with `{ success: boolean, message: string }`.
+
+Omit `VITE_API_MODE` or set it to `mock` to fall back to the built-in dataset.
+
+## Key files
+
+- `src/services/productService.ts` – abstraction over the product and purchase endpoints with mock and remote implementations.
+- `src/App.tsx` – main UI with catalog browsing, cart management, and checkout flow.
+- `src/App.css` – layout and visual styling.
