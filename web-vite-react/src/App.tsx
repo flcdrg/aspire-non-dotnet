@@ -98,18 +98,29 @@ function App() {
     setPurchaseAlert(null)
 
     try {
-      const response: PurchaseResponse = await api.purchase(
-        cartItems.map((item) => ({
+      const response: PurchaseResponse = await api.purchase({
+        items: cartItems.map((item) => ({
           productId: item.product.id,
           quantity: item.quantity,
         })),
-      )
+        totalAmount: subtotal,
+      })
 
       if (response.success) {
         setCartItems([])
-        setPurchaseAlert({ type: 'success', text: response.message })
+        setPurchaseAlert({
+          type: 'success',
+          text: response.status
+            ? `${response.message} (status: ${response.status})`
+            : response.message,
+        })
       } else {
-        setPurchaseAlert({ type: 'error', text: response.message })
+        setPurchaseAlert({
+          type: 'error',
+          text: response.status
+            ? `${response.message} (status: ${response.status})`
+            : response.message,
+        })
       }
     } catch (error) {
       const message =

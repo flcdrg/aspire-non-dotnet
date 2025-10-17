@@ -16,6 +16,7 @@ uv sync
 ## Configuration
 
 - `MONGO_CONNECTION_STRING` (optional): defaults to `mongodb://localhost:27017`. Override via environment variable or a `.env` file alongside the service.
+- `PAYMENT_API_BASE_URL` (optional): defaults to `http://127.0.0.1:8080`. Points at the Rust payment API.
 
 The service connects to the `petstore` database and uses the `products` collection. Seed data with `mongodb/populate.ps1` if needed.
 

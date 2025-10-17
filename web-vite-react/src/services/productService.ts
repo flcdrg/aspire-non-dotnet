@@ -15,11 +15,17 @@ export interface CartItemInput {
 export interface PurchaseResponse {
   success: boolean
   message: string
+  status?: 'success' | 'declined'
 }
 
 export interface PetStoreApi {
   getProducts: () => Promise<Product[]>
-  purchase: (items: CartItemInput[]) => Promise<PurchaseResponse>
+  purchase: (payload: PurchasePayload) => Promise<PurchaseResponse>
+}
+
+export interface PurchasePayload {
+  items: CartItemInput[]
+  totalAmount: number
 }
 
 type ApiMode = 'mock' | 'remote'
@@ -27,7 +33,6 @@ type ApiMode = 'mock' | 'remote'
 interface ApiConfig {
   mode: ApiMode
   baseUrl?: string
-  purchaseUrl?: string
 }
 
 const MOCK_PRODUCTS: Product[] = [
@@ -94,13 +99,14 @@ const createMockApi = (): PetStoreApi => ({
     await delay(300)
     return MOCK_PRODUCTS
   },
-  async purchase(items) {
+  async purchase({ items, totalAmount }: PurchasePayload) {
     await delay(500)
 
     if (items.length === 0) {
       return {
         success: false,
         message: 'Add at least one product before purchasing.',
+        status: 'declined',
       }
     }
 
@@ -109,13 +115,15 @@ const createMockApi = (): PetStoreApi => ({
     if (success) {
       return {
         success: true,
-        message: 'Thanks for shopping with the Cozy Critter Supply Co.!',
+        message: `Thanks for shopping with the Cozy Critter Supply Co.! Your total was $${totalAmount.toFixed(2)}.`,
+        status: 'success',
       }
     }
 
     return {
       success: false,
       message: 'The purchase could not be completed. Please try again.',
+      status: 'declined',
     }
   },
 })
@@ -131,7 +139,7 @@ const joinUrl = (baseUrl: string, path: string) => {
   return `${trimmedBase}/${trimmedPath}`
 }
 
-const createRemoteApi = (baseUrl: string, purchaseUrl: string): PetStoreApi => ({
+const createRemoteApi = (baseUrl: string): PetStoreApi => ({
   async getProducts() {
     const response = await fetch(joinUrl(baseUrl, 'products'))
 
@@ -142,11 +150,11 @@ const createRemoteApi = (baseUrl: string, purchaseUrl: string): PetStoreApi => (
 
     return (await response.json()) as Product[]
   },
-  async purchase(items) {
-    const response = await fetch(purchaseUrl, {
+  async purchase({ totalAmount }: PurchasePayload) {
+    const response = await fetch(joinUrl(baseUrl, 'payments'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({ total_amount: totalAmount }),
     })
 
     if (!response.ok) {
@@ -154,21 +162,30 @@ const createRemoteApi = (baseUrl: string, purchaseUrl: string): PetStoreApi => (
       throw new Error(details || 'Purchase failed.')
     }
 
-    return (await response.json()) as PurchaseResponse
+    const data = (await response.json()) as { status?: string }
+    const status = (data.status ?? '').toLowerCase() === 'success' ? 'success' : 'declined'
+    const success = status === 'success'
+
+    return {
+      success,
+      message: success
+        ? `Payment approved for $${totalAmount.toFixed(2)}. Thanks for shopping with the Cozy Critter Supply Co.!`
+        : 'Payment was declined. Please try another method.',
+      status,
+    }
   },
 })
 
 export const createPetStoreApi = (overrides: Partial<ApiConfig> = {}): PetStoreApi => {
   const mode = (overrides.mode ?? (import.meta.env.VITE_API_MODE as ApiMode)) || 'mock'
   const baseUrl = overrides.baseUrl ?? import.meta.env.VITE_API_BASE_URL
-  const purchaseUrl = overrides.purchaseUrl ?? import.meta.env.VITE_PURCHASE_URL
 
   if (mode === 'remote') {
-    if (baseUrl && purchaseUrl) {
-      return createRemoteApi(baseUrl, purchaseUrl)
+    if (baseUrl) {
+      return createRemoteApi(baseUrl)
     }
 
-    console.warn('PetStoreApi remote mode requires VITE_API_BASE_URL and VITE_PURCHASE_URL. Falling back to mock data.')
+    console.warn('PetStoreApi remote mode requires VITE_API_BASE_URL. Falling back to mock data.')
   }
 
   return createMockApi()

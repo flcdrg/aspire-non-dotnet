@@ -1,14 +1,17 @@
 import os
+from typing import Any
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import httpx
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import PyMongoError
 
 load_dotenv()
 
 MONGO_CONNECTION_STRING = os.getenv("MONGO_CONNECTION_STRING", "mongodb://localhost:27017")
+PAYMENT_API_BASE_URL = os.getenv("PAYMENT_API_BASE_URL", "http://127.0.0.1:8080")
 DATABASE_NAME = "petstore"
 COLLECTION_NAME = "products"
 
@@ -37,12 +40,19 @@ async def connect_to_mongo() -> None:
 
     app.state.products_collection = app.state.mongo_client[DATABASE_NAME][COLLECTION_NAME]
 
+    if not hasattr(app.state, "http_client"):
+        app.state.http_client = httpx.AsyncClient(base_url=PAYMENT_API_BASE_URL, timeout=5.0)
+
 
 @app.on_event("shutdown")
 async def close_mongo() -> None:
     client = getattr(app.state, "mongo_client", None)
     if client:
         client.close()
+
+    http_client = getattr(app.state, "http_client", None)
+    if http_client:
+        await http_client.aclose()
 
 
 @app.get("/")
@@ -64,3 +74,30 @@ async def get_products():
         return products
     except PyMongoError as exc:
         raise HTTPException(status_code=500, detail="Failed to load products.") from exc
+
+
+@app.post("/payments")
+async def create_payment(payload: dict[str, Any]):
+    total_amount = payload.get("total_amount")
+    if not isinstance(total_amount, (int, float)):
+        raise HTTPException(status_code=400, detail="total_amount must be a number.")
+
+    if total_amount <= 0:
+        raise HTTPException(status_code=400, detail="total_amount must be greater than zero.")
+
+    http_client: httpx.AsyncClient
+    if hasattr(app.state, "http_client"):
+        http_client = app.state.http_client
+    else:
+        app.state.http_client = httpx.AsyncClient(base_url=PAYMENT_API_BASE_URL, timeout=5.0)
+        http_client = app.state.http_client
+
+    try:
+        response = await http_client.post("/payment", json={"total_amount": total_amount})
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(status_code=exc.response.status_code, detail=exc.response.text) from exc
+    except httpx.RequestError as exc:
+        raise HTTPException(status_code=502, detail="Payment service unavailable.") from exc
+
+    return response.json()
