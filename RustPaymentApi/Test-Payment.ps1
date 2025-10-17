@@ -1,0 +1,1 @@
+Invoke-RestMethod -Uri http://127.0.0.1:8080/payment -Method Post -Body ( @{ total_amount = 100 } | ConvertTo-Json) -ContentType "application/json"
