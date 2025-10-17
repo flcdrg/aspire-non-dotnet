@@ -6,4 +6,6 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard]>=0.119.0",
+    "motor>=3.4.0",
+    "python-dotenv>=1.0.1",
 ]

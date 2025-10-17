@@ -1,5 +1,16 @@
-from fastapi import FastAPI
+import os
+
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from motor.motor_asyncio import AsyncIOMotorClient
+from pymongo.errors import PyMongoError
+
+load_dotenv()
+
+MONGO_CONNECTION_STRING = os.getenv("MONGO_CONNECTION_STRING", "mongodb://localhost:27017")
+DATABASE_NAME = "petstore"
+COLLECTION_NAME = "products"
 
 app = FastAPI()
 
@@ -12,57 +23,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mock product catalog mirrored from the frontend mock service.
-MOCK_PRODUCTS = [
-    {
-        "id": "chicken-coop-cleaner",
-        "name": "Cozy Coop Cleaner",
-        "description": "Keep your hens happy with a lavender-scented, pet-safe coop spray.",
-        "price": 14.99,
-        "imageUrl": "https://images.unsplash.com/photo-1573333744619-00d101e99133??auto=format&fit=crop&w=600&q=80",
-        "category": "Chickens",
-    },
-    {
-        "id": "turtle-terrarium-kit",
-        "name": "Lagoon Terrarium Starter Kit",
-        "description": "All-in-one habitat kit for small turtles with basking dock and LED lighting.",
-        "price": 89.5,
-        "imageUrl": "https://images.unsplash.com/photo-1663907181190-6ed43256458d?auto=format&fit=crop&w=600&q=80",
-        "category": "Turtles",
-    },
-    {
-        "id": "catnip-toy-set",
-        "name": "Feline Fiesta Catnip Toys",
-        "description": "A trio of hand-stitched toys packed with organic catnip.",
-        "price": 22.0,
-        "imageUrl": "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?auto=format&fit=crop&w=600&q=80",
-        "category": "Cats",
-    },
-    {
-        "id": "guinea-pig-salad",
-        "name": "Garden Greens Salad Mix",
-        "description": "Dried chamomile, carrot curls, and rose hips for guinea pigs and rabbits.",
-        "price": 11.75,
-        "imageUrl": "https://images.unsplash.com/photo-1612267168669-679c961c5b31?auto=format&fit=crop&w=600&q=80",
-        "category": "Small Pets",
-    },
-    {
-        "id": "dog-spa-shampoo",
-        "name": "Tail Waggers Spa Shampoo",
-        "description": "Oatmeal and aloe shampoo that soothes dry skin and keeps coats shiny.",
-        "price": 18.25,
-        "imageUrl": "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?auto=format&fit=crop&w=600&q=80",
-        "category": "Dogs",
-    },
-    {
-        "id": "parakeet-playground",
-        "name": "Skyline Play Tower",
-        "description": "Colorful perches and bells designed to keep parakeets entertained for hours.",
-        "price": 32.4,
-        "imageUrl": "https://images.unsplash.com/photo-1652536122320-ca870caea2ae?auto=format&fit=crop&w=600&q=80",
-        "category": "Birds",
-    },
-]
+
+@app.on_event("startup")
+async def connect_to_mongo() -> None:
+    # Ping on startup so we fail fast if MongoDB is unreachable.
+    app.state.mongo_client = AsyncIOMotorClient(MONGO_CONNECTION_STRING)
+    try:
+        await app.state.mongo_client.admin.command("ping")
+    except Exception as exc:
+        # Close the client to avoid dangling connections in failure scenarios.
+        app.state.mongo_client.close()
+        raise exc
+
+    app.state.products_collection = app.state.mongo_client[DATABASE_NAME][COLLECTION_NAME]
+
+
+@app.on_event("shutdown")
+async def close_mongo() -> None:
+    client = getattr(app.state, "mongo_client", None)
+    if client:
+        client.close()
 
 
 @app.get("/")
@@ -72,4 +52,15 @@ async def root():
 
 @app.get("/products")
 async def get_products():
-    return MOCK_PRODUCTS
+    collection = getattr(app.state, "products_collection", None)
+    if collection is None:
+        raise HTTPException(status_code=500, detail="Product collection not initialized.")
+
+    try:
+        products = []
+        async for document in collection.find():
+            document.pop("_id", None)  # Remove MongoDB ObjectId before returning to clients.
+            products.append(document)
+        return products
+    except PyMongoError as exc:
+        raise HTTPException(status_code=500, detail="Failed to load products.") from exc
