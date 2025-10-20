@@ -26,6 +26,14 @@ var loadData = builder.AddExecutable("load-data", "pwsh", "../mongodb", "-noprof
 // Node.js App
 
 // Python API
+// begin-snippet: PythonApi
+var pythonApp = builder.AddPythonExecutable("python-api", "../PythonUv", "fastapi")
+    .WithArgs(["dev", "src/api"])
+    .WithUv()
+    .WaitFor(mongo)
+    .WithEnvironment("PYTHONIOENCODING", "utf-8")
+    .WithHttpEndpoint(env: "PORT", port: 8000);
+// end-snippet: PythonApi
 
 // Frontend
 
