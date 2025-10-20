@@ -41,6 +41,9 @@ var pythonApp = builder.AddUvApp("python-api", "../PythonUv", "fastapi", "dev", 
 // end-snippet: PythonApi
 
 // Rust service
+var rust = builder.AddRustApp("rustpaymentapi", "../RustPaymentApi", [])
+    .WithHttpEndpoint(port: 8000, isProxied: false)
+    .WithExternalHttpEndpoints();
 
 // Frontend
 
