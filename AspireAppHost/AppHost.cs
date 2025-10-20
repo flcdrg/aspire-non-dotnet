@@ -43,5 +43,12 @@ var rust = builder.AddRustApp("rustpaymentapi", "../RustPaymentApi", [])
     .WithExternalHttpEndpoints();
 
 // Frontend
+// 1. dotnet add package CommunityToolkit.Aspire.Hosting.NodeJS.Extensions
+var web = builder.AddViteApp("web", "../web-vite-react", "pnpm")
+    .WithExternalHttpEndpoints()
+    .WithReference(pythonApp)
+    .WaitFor(pythonApp)
+    .WithReference(rust)
+    .WaitFor(rust);
 
 builder.Build().Run();
