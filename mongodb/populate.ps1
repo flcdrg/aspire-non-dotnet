@@ -1,3 +1,11 @@
+param (
+	[Parameter()]
+	[string]
+	$ConnectionString
+)
+
+Write-Host "Starting database population script..."
+
 Import-Module Mdbc
 
 $products = @(
@@ -51,6 +59,12 @@ $products = @(
 	}
 )
 
-Connect-Mdbc . petstore products -NewCollection
+if ($ConnectionString) {
+	Connect-Mdbc -ConnectionString $ConnectionString -DatabaseName petstore -CollectionName products -NewCollection
+} else {
+	Connect-Mdbc . petstore products -NewCollection
+}
+
 Add-MdbcData -InputObject $products
 
+Write-Host "Database population complete."
