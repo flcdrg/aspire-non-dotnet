@@ -30,6 +30,8 @@ var loadData = builder.AddExecutable("load-data", "pwsh", "../mongodb", "-noprof
 
 #pragma warning disable ASPIREHOSTINGPYTHON001
 var pythonApp = builder.AddUvApp("python-api", "../PythonUv", "fastapi", "dev", "src/api")
+    .WithReference(mongo)
+    .WaitFor(mongo)
     .WithEnvironment("PYTHONIOENCODING", "utf-8")
     .WithHttpEndpoint(env: "PORT", port: 8000);
 
