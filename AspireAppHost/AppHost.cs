@@ -1,12 +1,9 @@
+using Aspire.Hosting;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 // begin-snippet: MongoDB
-var mongo = builder.AddMongoDB("mongo", 27017, null, null)
-    .WithEnvironment(context =>
-    {
-        context.EnvironmentVariables.Remove("MONGO_INITDB_ROOT_USERNAME");
-        context.EnvironmentVariables.Remove("MONGO_INITDB_ROOT_PASSWORD");
-    })
+var mongo = builder.AddMongoDB("mongo")
     .WithDataVolume()
     .WithMongoExpress();
 
@@ -22,6 +19,12 @@ var loadData = builder.AddExecutable("load-data", "pwsh", "../mongodb", "-noprof
 //.WithExplicitStart();
 // end-snippet: PowerShellLoadData
 
+// Rust service
+// begin-snippet: RustApi
+var rust = builder.AddRustApp("rustpaymentapi", "../RustPaymentApi", [])
+    .WithHttpEndpoint(env: "PAYMENT_API_PORT");
+// end-snippet: RustApi
+
 // Python API
 // 1. dotnet add package CommunityToolkit.Aspire.Hosting.Python.Extensions
 // 2. Add .AddPythonApp to the builder
@@ -34,17 +37,15 @@ var loadData = builder.AddExecutable("load-data", "pwsh", "../mongodb", "-noprof
 var pythonApp = builder.AddUvApp("python-api", "../PythonUv", "fastapi", "dev", "src/api")
     .WithReference(mongo)
     .WaitFor(mongo)
+    .WithReference(rust)
+    .WaitFor(rust)
     .WithEnvironment("PYTHONIOENCODING", "utf-8")
-    .WithHttpEndpoint(env: "PORT", port: 8000);
+    .WithEnvironment("MONGO_CONNECTION_STRING", new ConnectionStringReference(mongo.Resource, false))
+    .WithEnvironment("PAYMENT_API_BASE_URL", ReferenceExpression.Create($"{rust.Resource.GetEndpoint("http")}"))
+    .WithHttpEndpoint(env: "PORT");
 
 #pragma warning restore ASPIREHOSTINGPYTHON001
 // end-snippet: PythonApi
-
-// Rust service
-// begin-snippet: RustApi
-var rust = builder.AddRustApp("rustpaymentapi", "../RustPaymentApi", [])
-    .WithHttpEndpoint(port: 8080, isProxied: false);
-// end-snippet: RustApi
 
 // Frontend
 // 1. dotnet add package CommunityToolkit.Aspire.Hosting.NodeJS.Extensions
@@ -54,7 +55,8 @@ var web = builder.AddViteApp("web", "../web-vite-react", "pnpm")
     .WithEnvironment("PATH", Environment.GetEnvironmentVariable("PATH") + ";" + Environment.ExpandEnvironmentVariables(@"%USERPROFILE%\AppData\Roaming\fnm\aliases\default"))
     .WithExternalHttpEndpoints()
     .WithReference(pythonApp)
-    .WaitFor(pythonApp);
+    .WaitFor(pythonApp)
+    .WithEnvironment("VITE_API_BASE_URL", new EndpointReference(pythonApp.Resource, "http"));
 // end-snippet: ViteReactApp
 
 builder.Build().Run();
