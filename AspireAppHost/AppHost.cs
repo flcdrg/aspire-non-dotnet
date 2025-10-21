@@ -1,7 +1,13 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 // MongoDB
-var mongo = builder.AddMongoDB("mongo", 27017)
+var mongo = builder.AddMongoDB("mongo", 27017, null, null)
+    .WithEnvironment(context =>
+    {
+        context.EnvironmentVariables.Remove("MONGO_INITDB_ROOT_USERNAME");
+        context.EnvironmentVariables.Remove("MONGO_INITDB_ROOT_PASSWORD");
+    })
+
     //.WithLifetime(ContainerLifetime.Persistent)
     .WithDataVolume()
     .WithMongoExpress();
