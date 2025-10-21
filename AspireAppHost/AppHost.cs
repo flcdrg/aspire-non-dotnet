@@ -45,6 +45,8 @@ var rust = builder.AddRustApp("rustpaymentapi", "../RustPaymentApi", [])
 // Frontend
 // 1. dotnet add package CommunityToolkit.Aspire.Hosting.NodeJS.Extensions
 var web = builder.AddViteApp("web", "../web-vite-react", "pnpm")
+    // If you are using fnm for Node.js version management, you might need to adjust the PATH
+    .WithEnvironment("PATH", Environment.GetEnvironmentVariable("PATH") + ";" + Environment.ExpandEnvironmentVariables(@"%USERPROFILE%\AppData\Roaming\fnm\aliases\default"))
     .WithExternalHttpEndpoints()
     .WithReference(pythonApp)
     .WaitFor(pythonApp)
