@@ -73,7 +73,7 @@ async def get_products():
             products.append(document)
         return products
     except PyMongoError as exc:
-        raise HTTPException(status_code=500, detail="Failed to load products.") from exc
+        raise HTTPException(status_code=500, detail=f"Failed to load products: {exc}") from exc
 
 
 @app.post("/payments")
@@ -98,6 +98,6 @@ async def create_payment(payload: dict[str, Any]):
     except httpx.HTTPStatusError as exc:
         raise HTTPException(status_code=exc.response.status_code, detail=exc.response.text) from exc
     except httpx.RequestError as exc:
-        raise HTTPException(status_code=502, detail="Payment service unavailable.") from exc
+        raise HTTPException(status_code=502, detail=f"Payment service unavailable: {exc}") from exc
 
     return response.json()
