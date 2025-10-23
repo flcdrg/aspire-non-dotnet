@@ -34,7 +34,7 @@ var rust = builder.AddRustApp("rustpaymentapi", "../RustPaymentApi", [])
 
 // begin-snippet: PythonApi
 #pragma warning disable ASPIREHOSTINGPYTHON001
-var pythonApp = builder.AddUvApp("python-api", "../PythonUv", "fastapi", "dev", "src/api")
+var pythonApp = builder.AddUvApp("python-api", "../PythonUv", "fastapi", "run", "src/api")
     .WithReference(mongo)
     .WaitFor(mongo)
     .WithReference(rust)
@@ -42,7 +42,8 @@ var pythonApp = builder.AddUvApp("python-api", "../PythonUv", "fastapi", "dev", 
     .WithEnvironment("PYTHONIOENCODING", "utf-8")
     .WithEnvironment("MONGO_CONNECTION_STRING", new ConnectionStringReference(mongo.Resource, false))
     .WithEnvironment("PAYMENT_API_BASE_URL", ReferenceExpression.Create($"{rust.Resource.GetEndpoint("http")}"))
-    .WithHttpEndpoint(env: "PORT");
+    .WithHttpEndpoint(env: "PORT")
+    .WithOtlpExporter();
 
 #pragma warning restore ASPIREHOSTINGPYTHON001
 // end-snippet: PythonApi
