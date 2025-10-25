@@ -10,6 +10,7 @@ dependencies = [
     "python-dotenv>=1.0.1",
     "httpx>=0.27.2",
     "opentelemetry-instrumentation-fastapi>=0.59b0",
+    "opentelemetry-instrumentation-httpx>=0.59b0",
     "opentelemetry-exporter-otlp-proto-grpc>=1.38.0",
     "opentelemetry-distro>=0.59b0",
 ]

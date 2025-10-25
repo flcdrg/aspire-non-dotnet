@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import httpx
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import PyMongoError
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+from opentelemetry import trace
 
 load_dotenv()
 
@@ -17,6 +19,11 @@ COLLECTION_NAME = "products"
 
 app = FastAPI()
 
+# Instrument httpx for OpenTelemetry tracing
+HTTPXClientInstrumentor().instrument()
+
+tracer = trace.get_tracer(__name__)
+
 # Allow all origins for development simplicity.
 app.add_middleware(
     CORSMiddleware,
@@ -25,7 +32,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 @app.on_event("startup")
 async def connect_to_mongo() -> None:
@@ -57,8 +63,15 @@ async def close_mongo() -> None:
 
 @app.get("/")
 async def root():
-    return "Hello world"
 
+    with tracer.start_as_current_span("root_endpoint") as root_span:
+        root_span.set_attribute("custom.attribute", "value")
+
+        async with httpx.AsyncClient() as client:
+            r = await client.get("https://httpbin.org/delay/1")
+            upstream_ms = r.elapsed.total_seconds() * 1000
+            root_span.set_attribute("upstream.response_time", upstream_ms)
+            return "Hello world"
 
 @app.get("/products")
 async def get_products():
