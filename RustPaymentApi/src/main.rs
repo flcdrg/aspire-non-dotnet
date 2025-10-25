@@ -1,18 +1,39 @@
 use std::env;
 
 use actix_web::{App, HttpResponse, HttpServer, Responder, get, post, web};
-use actix_web_opentelemetry::{RequestMetrics, RequestTracing};
-use opentelemetry::{KeyValue, global, trace::Tracer};
+use opentelemetry::propagation::Extractor;
+use opentelemetry::{
+    KeyValue, global,
+    trace::{Span, Tracer},
+};
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{
     Resource, propagation::TraceContextPropagator, runtime::TokioCurrentThread, trace::Config,
 };
 use rand::{Rng, thread_rng};
 
+// Minimal extractor for Actix HeaderMap to support W3C context extraction
+struct ActixHeaderExtractor<'a>(&'a actix_web::http::header::HeaderMap);
+
+impl<'a> Extractor for ActixHeaderExtractor<'a> {
+    fn get(&self, key: &str) -> Option<&str> {
+        self.0.get(key).and_then(|v| v.to_str().ok())
+    }
+
+    fn keys(&self) -> Vec<&str> {
+        self.0.keys().map(|k| k.as_str()).collect()
+    }
+}
+
 #[get("/hello/{name}")]
-async fn greet(name: web::Path<String>) -> impl Responder {
+async fn greet(req: actix_web::HttpRequest, name: web::Path<String>) -> impl Responder {
+    let parent_cx =
+        global::get_text_map_propagator(|prop| prop.extract(&ActixHeaderExtractor(req.headers())));
     let tracer = global::tracer("rustpaymentapi");
-    tracer.in_span("greet", |_cx| format!("Hello {}!", name))
+    let mut span = tracer.start_with_context("hello", &parent_cx);
+    let msg = format!("Hello {}!", name);
+    span.end();
+    msg
 }
 
 #[derive(serde::Deserialize)]
@@ -26,24 +47,32 @@ struct PaymentResponse<'a> {
 }
 
 #[post("/payment")]
-async fn process_payment(payload: web::Json<PaymentRequest>) -> HttpResponse {
+async fn process_payment(
+    req: actix_web::HttpRequest,
+    payload: web::Json<PaymentRequest>,
+) -> HttpResponse {
+    let parent_cx =
+        global::get_text_map_propagator(|prop| prop.extract(&ActixHeaderExtractor(req.headers())));
     let tracer = global::tracer("rustpaymentapi");
-    tracer.in_span("process_payment", |_cx| {
-        let mut rng = thread_rng();
-        let approved = rng.gen_bool(0.8);
+    let mut span = tracer.start_with_context("process_payment", &parent_cx);
 
-        println!(
-            "Processed payment of amount {:.2}: {}",
-            payload.total_amount,
-            if approved { "approved" } else { "declined" }
-        );
+    let mut rng = thread_rng();
+    let approved = rng.gen_bool(0.8);
 
-        if approved {
-            HttpResponse::Ok().json(PaymentResponse { status: "success" })
-        } else {
-            HttpResponse::Ok().json(PaymentResponse { status: "declined" })
-        }
-    })
+    println!(
+        "Processed payment of amount {:.2}: {}",
+        payload.total_amount,
+        if approved { "approved" } else { "declined" }
+    );
+
+    let resp = if approved {
+        HttpResponse::Ok().json(PaymentResponse { status: "success" })
+    } else {
+        HttpResponse::Ok().json(PaymentResponse { status: "declined" })
+    };
+
+    span.end();
+    resp
 }
 
 #[actix_web::main] // or #[tokio::main]
@@ -71,17 +100,12 @@ async fn main() -> std::io::Result<()> {
         println!("Starting RustPaymentApi on {host}:{port}");
     });
 
-    HttpServer::new(|| {
-        App::new()
-            .wrap(RequestTracing::new())
-            .service(greet)
-            .service(process_payment)
-    })
-    .bind((host.as_str(), port))?
-    .run()
-    .await?;
+    HttpServer::new(|| App::new().service(greet).service(process_payment))
+        .bind((host.as_str(), port))?
+        .run()
+        .await?;
 
-    // Ensure all spans have been shipped to Dashbord.
+    // Ensure all spans have been shipped to Dashboard.
     opentelemetry::global::shutdown_tracer_provider();
 
     Ok(())
