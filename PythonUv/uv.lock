@@ -488,6 +488,20 @@ wheels = [
 ]
 
 [[package]]
+name = "opentelemetry-instrumentation-pymongo"
+version = "0.59b0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "opentelemetry-api" },
+    { name = "opentelemetry-instrumentation" },
+    { name = "opentelemetry-semantic-conventions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/46/2c/fe95063655f9c0047fe2a836ccd3214ec2e935ea9aa67ab22466acb886a6/opentelemetry_instrumentation_pymongo-0.59b0.tar.gz", hash = "sha256:37ba09171eefad9eed364599431fb309036127843747ae20ac71351f04ab2739", size = 9862, upload-time = "2025-10-16T08:39:56.757Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/bb/1b/6235dd238d4aaa8138a90ee18839b2b185936dad6279423fdbea80c26639/opentelemetry_instrumentation_pymongo-0.59b0-py3-none-any.whl", hash = "sha256:a574761b2f5fe9776379d49ab46f85f59268adf7d96f5f4994aa1a62be7a8e63", size = 11337, upload-time = "2025-10-16T08:39:04.221Z" },
+]
+
+[[package]]
 name = "opentelemetry-proto"
 version = "1.38.0"
 source = { registry = "https://pypi.org/simple" }
@@ -708,6 +722,7 @@ dependencies = [
     { name = "opentelemetry-exporter-otlp-proto-grpc" },
     { name = "opentelemetry-instrumentation-fastapi" },
     { name = "opentelemetry-instrumentation-httpx" },
+    { name = "opentelemetry-instrumentation-pymongo" },
     { name = "python-dotenv" },
 ]
 
@@ -720,6 +735,7 @@ requires-dist = [
     { name = "opentelemetry-exporter-otlp-proto-grpc", specifier = ">=1.38.0" },
     { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.59b0" },
     { name = "opentelemetry-instrumentation-httpx", specifier = ">=0.59b0" },
+    { name = "opentelemetry-instrumentation-pymongo", specifier = ">=0.59b0" },
     { name = "python-dotenv", specifier = ">=1.0.1" },
 ]
 
