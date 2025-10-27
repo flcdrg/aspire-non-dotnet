@@ -22,6 +22,7 @@ function App() {
   const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [joke, setJoke] = useState<string | null>(null)
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [isPurchasing, setIsPurchasing] = useState(false)
   const [purchaseAlert, setPurchaseAlert] = useState<PurchaseAlert | null>(
@@ -56,6 +57,28 @@ function App() {
     }
 
     loadProducts()
+
+    return () => {
+      isActive = false
+    }
+  }, [api])
+
+  // Load a joke when the page loads
+  useEffect(() => {
+    let isActive = true
+
+    const loadJoke = async () => {
+      try {
+        const jokeResponse = await api.getJoke()
+        if (isActive) setJoke(jokeResponse.joke)
+      } catch (error) {
+        // If joke fails to load, just ignore silently
+        console.debug('Joke failed to load:', error)
+        if (isActive) setJoke(null)
+      }
+    }
+
+    loadJoke()
 
     return () => {
       isActive = false
@@ -148,6 +171,13 @@ function App() {
       </header>
 
       <main className="content">
+        {joke && (
+          <section className="joke-section">
+            <div className="joke-card">
+              <p>😄 {joke}</p>
+            </div>
+          </section>
+        )}
         <section className="catalog">
           <div className="section-header">
             <h2>Featured Products</h2>
@@ -220,9 +250,9 @@ function App() {
           </div>
 
           {purchaseAlert && (
-            <p className={`purchase-alert ${purchaseAlert.type}`}>
-              {purchaseAlert.text}
-            </p>
+              <div className={`purchase-alert ${purchaseAlert.type}`}>
+                <p>{purchaseAlert.text}</p>
+              </div>
           )}
 
           <button

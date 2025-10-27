@@ -18,9 +18,14 @@ export interface PurchaseResponse {
   status?: 'success' | 'declined'
 }
 
+export interface JokeResponse {
+  joke: string
+}
+
 export interface PetStoreApi {
   getProducts: () => Promise<Product[]>
   purchase: (payload: PurchasePayload) => Promise<PurchaseResponse>
+  getJoke: () => Promise<JokeResponse>
 }
 
 export interface PurchasePayload {
@@ -94,6 +99,14 @@ const MOCK_PRODUCTS: Product[] = [
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
+const MOCK_JOKES = [
+  "Why do fish live in salt water? Because pepper makes them sneeze!",
+  "What do you call a dog magician? A labracadabrador!",
+  "Why don't cats play poker in the jungle? Too many cheetahs!",
+  "What's a cat's favorite color? Purrr-ple!",
+  "Why did the turtle cross the road? To get to the Shell station!"
+]
+
 const createMockApi = (): PetStoreApi => ({
   async getProducts() {
     await delay(300)
@@ -126,6 +139,11 @@ const createMockApi = (): PetStoreApi => ({
       status: 'declined',
     }
   },
+    async getJoke() {
+      await delay(200)
+      const randomJoke = MOCK_JOKES[Math.floor(Math.random() * MOCK_JOKES.length)]
+      return { joke: randomJoke }
+    },
 })
 
 const joinUrl = (baseUrl: string, path: string) => {
@@ -174,6 +192,16 @@ const createRemoteApi = (baseUrl: string): PetStoreApi => ({
       status,
     }
   },
+    async getJoke() {
+      const response = await fetch(joinUrl(baseUrl, 'joke'))
+
+      if (!response.ok) {
+        const details = await response.text().catch(() => '')
+        throw new Error(details || 'Failed to fetch joke.')
+      }
+
+      return (await response.json()) as JokeResponse
+    },
 })
 
 export const createPetStoreApi = (overrides: Partial<ApiConfig> = {}): PetStoreApi => {

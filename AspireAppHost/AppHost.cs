@@ -1,4 +1,6 @@
 using Aspire.Hosting;
+using AspireAppHost;
+using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
@@ -25,6 +27,20 @@ var rust = builder.AddRustApp("rustpaymentapi", "../RustPaymentApi", [])
     .WithHttpEndpoint(env: "PAYMENT_API_PORT");
 // end-snippet: RustApi
 
+// Node.js App
+var nodeApp = builder.AddPnpmApp("node-joke-api", "../NodeApp")
+    // If you are using fnm for Node.js version management, you might need to adjust the PATH
+    .WithEnvironment("PATH", Environment.GetEnvironmentVariable("PATH") + ";" + Environment.ExpandEnvironmentVariables(@"%USERPROFILE%\AppData\Roaming\fnm\aliases\default"))
+    .WithHttpEndpoint(env: "PORT")
+    .WithOtlpExporter();
+
+var launchProfile = builder.Configuration["DOTNET_LAUNCH_PROFILE"];
+
+if (builder.Environment.IsDevelopment() && launchProfile == "https")
+{
+    nodeApp.RunWithHttpsDevCertificate("HTTPS_CERT_FILE", "HTTPS_CERT_KEY_FILE");
+}    
+
 // Python API
 // 1. dotnet add package CommunityToolkit.Aspire.Hosting.Python.Extensions
 // 2. Add .AddPythonApp to the builder
@@ -39,9 +55,12 @@ var pythonApp = builder.AddUvApp("python-api", "../PythonUv", "fastapi", "run", 
     .WaitFor(mongo)
     .WithReference(rust)
     .WaitFor(rust)
+    .WithReference(nodeApp)
+    .WaitFor(nodeApp)
     .WithEnvironment("PYTHONIOENCODING", "utf-8")
     .WithEnvironment("MONGO_CONNECTION_STRING", new ConnectionStringReference(mongo.Resource, false))
     .WithEnvironment("PAYMENT_API_BASE_URL", ReferenceExpression.Create($"{rust.Resource.GetEndpoint("http")}"))
+    .WithEnvironment("NODE_APP_BASE_URL", ReferenceExpression.Create($"{nodeApp.Resource.GetEndpoint("http")}"))
     .WithHttpEndpoint(env: "PORT")
     .WithOtlpExporter();
 

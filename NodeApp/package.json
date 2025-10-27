@@ -1,0 +1,40 @@
+{
+  "name": "nodeapp",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "tsx --import ./instrumentation.ts ./app.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.19.0+sha512.c9fc7236e92adf5c8af42fd5bf1612df99c2ceb62f27047032f4720b33f8eacdde311865e91c411f2774f618d82f320808ecb51718bfa82c060c4ba7c76a32b8",
+  "engines": {
+    "node": ">= 22 < 23"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.4",
+    "@types/node": "^24.9.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.14.0",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/exporter-logs-otlp-grpc": "^0.207.0",
+    "@opentelemetry/exporter-metrics-otlp-grpc": "^0.207.0",
+    "@opentelemetry/exporter-trace-otlp-grpc": "^0.207.0",
+    "@opentelemetry/instrumentation-express": "~0.55.0",
+    "@opentelemetry/instrumentation-http": "^0.207.0",
+    "@opentelemetry/resources": "^2.2.0",
+    "@opentelemetry/sdk-logs": "^0.207.0",
+    "@opentelemetry/sdk-metrics": "^2.2.0",
+    "@opentelemetry/sdk-node": "^0.207.0",
+    "@opentelemetry/sdk-trace-node": "^2.2.0",
+    "@opentelemetry/semantic-conventions": "^1.37.0",
+    "express": "^5.1.0"
+  }
+}
