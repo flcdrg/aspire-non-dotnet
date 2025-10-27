@@ -1,5 +1,6 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
+// MongoDB
 // begin-snippet: MongoDB
 var mongo = builder.AddMongoDB("mongo", 27017, null, null)
     .WithEnvironment(context =>
@@ -22,6 +23,10 @@ var loadData = builder.AddExecutable("load-data", "pwsh", "../mongodb", "-noprof
 // end-snippet: PowerShellLoadData
 
 // Rust service
+// begin-snippet: RustApi
+var rust = builder.AddRustApp("rustpaymentapi", "../RustPaymentApi", [])
+    .WithHttpEndpoint(port: 8080, isProxied: false);
+// end-snippet: RustApi
 
 // Node.js App
 
@@ -31,6 +36,7 @@ var pythonApp = builder.AddPythonExecutable("python-api", "../PythonUv", "fastap
     .WithArgs(["dev", "src/api"])
     .WithUv()
     .WaitFor(mongo)
+	.WaitFor(rust)
     .WithEnvironment("PYTHONIOENCODING", "utf-8")
     .WithHttpEndpoint(env: "PORT", port: 8000);
 // end-snippet: PythonApi
