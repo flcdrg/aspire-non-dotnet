@@ -34,7 +34,8 @@ var pythonApp = builder.AddUvicornApp("python-api", "../PythonUv", "src.api:app"
     .WithEnvironment("PYTHONIOENCODING", "utf-8")
     .WithEnvironment("MONGO_CONNECTION_STRING", new ConnectionStringReference(mongo.Resource, false))
     .WithEnvironment("PAYMENT_API_BASE_URL", new EndpointReference(rust.Resource, "http"))
-    .WithExternalHttpEndpoints();
+    .WithExternalHttpEndpoints()
+    .WithOtlpExporter();
 // end-snippet: PythonApi
 // Frontend
 // begin-snippet: ViteReactApp
