@@ -177,7 +177,7 @@ const createRemoteApi = (baseUrl: string): PetStoreApi => ({
 })
 
 export const createPetStoreApi = (overrides: Partial<ApiConfig> = {}): PetStoreApi => {
-  const mode = (overrides.mode ?? (import.meta.env.VITE_API_MODE as ApiMode)) || 'mock'
+  const mode = (overrides.mode ?? (import.meta.env.VITE_API_MODE as ApiMode)) || 'remote'
   const baseUrl = overrides.baseUrl ?? import.meta.env.VITE_API_BASE_URL
 
   if (mode === 'remote') {
