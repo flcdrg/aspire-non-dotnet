@@ -2,12 +2,7 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 // MongoDB
 // begin-snippet: MongoDB
-var mongo = builder.AddMongoDB("mongo", 27017, null, null)
-    .WithEnvironment(context =>
-    {
-        context.EnvironmentVariables.Remove("MONGO_INITDB_ROOT_USERNAME");
-        context.EnvironmentVariables.Remove("MONGO_INITDB_ROOT_PASSWORD");
-    })
+var mongo = builder.AddMongoDB("mongo")
     .WithDataVolume()
     .WithMongoExpress();
 
@@ -25,29 +20,30 @@ var loadData = builder.AddExecutable("load-data", "pwsh", "../mongodb", "-noprof
 // Rust service
 // begin-snippet: RustApi
 var rust = builder.AddRustApp("rustpaymentapi", "../RustPaymentApi", [])
-    .WithHttpEndpoint(port: 8080, isProxied: false);
+    .WithHttpEndpoint(env: "PAYMENT_API_PORT");
 // end-snippet: RustApi
 
 // Node.js App
 
 // Python API
 // begin-snippet: PythonApi
-var pythonApp = builder.AddPythonExecutable("python-api", "../PythonUv", "fastapi")
-    .WithArgs(["dev", "src/api"])
+var pythonApp = builder.AddUvicornApp("python-api", "../PythonUv", "src.api:app")
     .WithUv()
     .WaitFor(mongo)
     .WaitFor(rust)
     .WithEnvironment("PYTHONIOENCODING", "utf-8")
-    .WithHttpEndpoint(env: "PORT", port: 8000);
+    .WithEnvironment("MONGO_CONNECTION_STRING", new ConnectionStringReference(mongo.Resource, false))
+    .WithEnvironment("PAYMENT_API_BASE_URL", new EndpointReference(rust.Resource, "http"))
+    .WithExternalHttpEndpoints();
 // end-snippet: PythonApi
-
 // Frontend
 // begin-snippet: ViteReactApp
 var web = builder.AddViteApp("web", "../web-vite-react")
     .WithPnpm()
     // If you are using fnm for Node.js version management, you might need to adjust the PATH
     .WithEnvironment("PATH", Environment.GetEnvironmentVariable("PATH") + ";" + Environment.ExpandEnvironmentVariables(@"%USERPROFILE%\AppData\Roaming\fnm\aliases\default"))
-    .WaitFor(pythonApp);
+    .WaitFor(pythonApp)
+    .WithEnvironment("VITE_API_BASE_URL", new EndpointReference(pythonApp.Resource, "http"));
 // end-snippet: ViteReactApp
 
 builder.Build().Run();
