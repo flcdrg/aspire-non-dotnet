@@ -42,5 +42,12 @@ var pythonApp = builder.AddPythonExecutable("python-api", "../PythonUv", "fastap
 // end-snippet: PythonApi
 
 // Frontend
+// begin-snippet: ViteReactApp
+var web = builder.AddViteApp("web", "../web-vite-react")
+    .WithPnpm()
+    // If you are using fnm for Node.js version management, you might need to adjust the PATH
+    .WithEnvironment("PATH", Environment.GetEnvironmentVariable("PATH") + ";" + Environment.ExpandEnvironmentVariables(@"%USERPROFILE%\AppData\Roaming\fnm\aliases\default"))
+    .WaitFor(pythonApp);
+// end-snippet: ViteReactApp
 
 builder.Build().Run();
