@@ -24,20 +24,28 @@ var rust = builder.AddRustApp("rustpaymentapi", "../RustPaymentApi", [])
 // end-snippet: RustApi
 
 // Node.js App
+// begin-snippet: NodeJokeApi
+var nodeApp = builder.AddJavaScriptApp("node-joke-api", "../NodeApp", "start")
+    .WithPnpm()
+    // If you are using fnm for Node.js version management, you might need to adjust the PATH
+    .WithEnvironment("PATH", Environment.GetEnvironmentVariable("PATH") + ";" + Environment.ExpandEnvironmentVariables(@"%USERPROFILE%\AppData\Roaming\fnm\aliases\default"))
+    .WithHttpEndpoint(env: "PORT")
+    .WithOtlpExporter();
+// end-snippet: NodeJokeApi
 
-// Python API
 // begin-snippet: PythonApi
 var pythonApp = builder.AddUvicornApp("python-api", "../PythonUv", "src.api:app")
     .WithUv()
     .WaitFor(mongo)
 	.WaitFor(rust)
+    .WaitFor(nodeApp)
     .WithEnvironment("PYTHONIOENCODING", "utf-8")
     .WithEnvironment("MONGO_CONNECTION_STRING", new ConnectionStringReference(mongo.Resource, false))
     .WithEnvironment("PAYMENT_API_BASE_URL", new EndpointReference(rust.Resource, "http"))
+    .WithEnvironment("NODE_APP_BASE_URL", ReferenceExpression.Create($"{nodeApp.Resource.GetEndpoint("http")}"))
     .WithHttpHealthCheck("/")
     .WithExternalHttpEndpoints();
 // end-snippet: PythonApi
-
 // Frontend
 // begin-snippet: ViteReactApp
 var web = builder.AddViteApp("web", "../web-vite-react")
