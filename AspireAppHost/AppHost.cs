@@ -29,6 +29,7 @@ var loadData = builder.AddExecutable("load-data", "pwsh", "../mongodb", "-noprof
 // 4. Use .AddUvApp
 // 5. Mitigate character encoding issue
 
+// begin-snippet: PythonApi
 #pragma warning disable ASPIREHOSTINGPYTHON001
 var pythonApp = builder.AddUvApp("python-api", "../PythonUv", "fastapi", "dev", "src/api")
     .WithReference(mongo)
@@ -37,6 +38,7 @@ var pythonApp = builder.AddUvApp("python-api", "../PythonUv", "fastapi", "dev", 
     .WithHttpEndpoint(env: "PORT", port: 8000);
 
 #pragma warning restore ASPIREHOSTINGPYTHON001
+// end-snippet: PythonApi
 
 // Rust service
 
