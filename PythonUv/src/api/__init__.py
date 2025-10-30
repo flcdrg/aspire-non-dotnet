@@ -19,6 +19,7 @@ MONGO_CONNECTION_STRING = os.getenv(
     "MONGO_CONNECTION_STRING", "mongodb://localhost:27017"
 )
 PAYMENT_API_BASE_URL = os.getenv("PAYMENT_API_BASE_URL", "http://127.0.0.1:8080")
+NODE_APP_BASE_URL = os.getenv("NODE_APP_BASE_URL", "http://127.0.0.1:3000")
 DATABASE_NAME = "petstore"
 COLLECTION_NAME = "products"
 
@@ -144,3 +145,23 @@ async def create_payment(payload: dict[str, Any]):
         ) from exc
 
     return response.json()
+
+
+@app.get("/joke")
+async def get_joke():
+    """Fetch a random pet joke from the Node.js app."""
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{NODE_APP_BASE_URL}/")
+            response.raise_for_status()
+            return {"joke": response.text}
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(
+            status_code=exc.response.status_code,
+            detail=f"Node app returned error: {exc.response.text}"
+        ) from exc
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Node app unavailable: {exc}"
+        ) from exc
