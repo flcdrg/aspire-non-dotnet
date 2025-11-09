@@ -1,15 +1,17 @@
+import httpx
+import opentelemetry.instrumentation.fastapi as otel_fastapi
 import os
-from typing import Any
-
+from . import telemetry
+from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-import httpx
 from motor.motor_asyncio import AsyncIOMotorClient
-from pymongo.errors import PyMongoError
-from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 from opentelemetry import trace
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 from opentelemetry.instrumentation.pymongo import PymongoInstrumentor
+from pymongo.errors import PyMongoError
+from typing import Any
 
 load_dotenv()
 
@@ -20,7 +22,43 @@ PAYMENT_API_BASE_URL = os.getenv("PAYMENT_API_BASE_URL", "http://127.0.0.1:8080"
 DATABASE_NAME = "petstore"
 COLLECTION_NAME = "products"
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    telemetry.configure_opentelemetry()
+    
+    # Startup: connect to Mongo and prepare HTTP client
+    app.state.mongo_client = AsyncIOMotorClient(MONGO_CONNECTION_STRING)
+    try:
+        await app.state.mongo_client.admin.command("ping")
+    except Exception as exc:
+        app.state.mongo_client.close()
+        raise exc
+
+    app.state.products_collection = app.state.mongo_client[DATABASE_NAME][
+        COLLECTION_NAME
+    ]
+
+    if not hasattr(app.state, "http_client"):
+        app.state.http_client = httpx.AsyncClient(
+            base_url=PAYMENT_API_BASE_URL, timeout=5.0
+        )
+
+    # Yield control to the application
+    try:
+        yield
+    finally:
+        # Shutdown: close resources
+        client = getattr(app.state, "mongo_client", None)
+        if client:
+            client.close()
+
+        http_client = getattr(app.state, "http_client", None)
+        if http_client:
+            await http_client.aclose()
+
+
+app = FastAPI(lifespan=lifespan)
+otel_fastapi.FastAPIInstrumentor.instrument_app(app, exclude_spans=["send"])
 
 # Instrument httpx for OpenTelemetry tracing
 HTTPXClientInstrumentor().instrument()
@@ -36,39 +74,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event("startup")
-async def connect_to_mongo() -> None:
-    # Ping on startup so we fail fast if MongoDB is unreachable.
-    app.state.mongo_client = AsyncIOMotorClient(MONGO_CONNECTION_STRING)
-    try:
-        await app.state.mongo_client.admin.command("ping")
-    except Exception as exc:
-        # Close the client to avoid dangling connections in failure scenarios.
-        app.state.mongo_client.close()
-        raise exc
-
-    app.state.products_collection = app.state.mongo_client[DATABASE_NAME][
-        COLLECTION_NAME
-    ]
-
-    if not hasattr(app.state, "http_client"):
-        app.state.http_client = httpx.AsyncClient(
-            base_url=PAYMENT_API_BASE_URL, timeout=5.0
-        )
-
-
-@app.on_event("shutdown")
-async def close_mongo() -> None:
-    client = getattr(app.state, "mongo_client", None)
-    if client:
-        client.close()
-
-    http_client = getattr(app.state, "http_client", None)
-    if http_client:
-        await http_client.aclose()
-
 
 @app.get("/")
 async def root():
