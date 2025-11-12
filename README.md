@@ -1,4 +1,4 @@
-# .Aspire with non .NET applications
+# Aspire with non .NET applications
 
 Example using [Aspire](https://aspire.dev/) (formerly .NET Aspire) with non-.NET applications
 
