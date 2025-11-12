@@ -1,6 +1,6 @@
-# .NET Aspire with non .NET applications
+# .Aspire with non .NET applications
 
-Example using .NET Aspire with non-.NET applications
+Example using [Aspire](https://aspire.dev/) (formerly .NET Aspire) with non-.NET applications
 
 ## Manual startup
 
@@ -10,9 +10,9 @@ Example using .NET Aspire with non-.NET applications
 4. In [RustPaymentApi](./RustPaymentApi/), run `cargo run`
 5. In [web-vite-react](./web-vite-react/), run `pnpm dev`
 
-## Incremental .NET Aspire integration
+## Incremental Aspire integration
 
-Once .NET Aspire is added, if you have the Aspire CLI installed you can run:
+Once Aspire is added, if you have the Aspire CLI installed you can run:
 
 ```bash
 aspire run
@@ -21,7 +21,7 @@ aspire run
 Each increment is in its own branch and builds on the previous one:
 
 - `main`: no Aspire integration
-- `aspire-add-aspire`: Add empty .NET Aspire AppHost project
+- `aspire-add-aspire`: Add empty Aspire AppHost project
 - `aspire-add-mongo`: Add MongoDB container to Aspire
 - `aspire-add-pythonuv`: Add PythonUv to Aspire
 - `aspire-add-rust`: Add RustPaymentApi to Aspire
