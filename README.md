@@ -2,6 +2,8 @@
 
 Example using [Aspire](https://aspire.dev/) (formerly .NET Aspire) with non-.NET applications
 
+The code in this repo was used in the YouTube video [Using .NET Aspire with non-.NET applications](https://www.youtube.com/watch?v=FcAi-kqo3ps). That recording was done using Aspire 9.5, but this repo has since been updated to use Aspire 13.0.
+
 ## Manual startup
 
 1. In [mongodb](./mongodb/), run `docker compose up -d`
